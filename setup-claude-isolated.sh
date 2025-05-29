@@ -250,20 +250,27 @@ echo 'alias gc="git commit"' >> ~/.bashrc
 echo 'alias gp="git push"' >> ~/.bashrc
 
 # Create claude wrapper script
-# Find where claude is installed
-CLAUDE_PATH=$(which claude 2>/dev/null)
-if [ ! -z "$CLAUDE_PATH" ]; then
-    # Create wrapper that overrides claude
-    mkdir -p /usr/local/bin
-    cat > /usr/local/bin/claude << WRAPPER_EOF
-#!/bin/bash
-exec $CLAUDE_PATH --dangerously-skip-permissions "\$@"
-WRAPPER_EOF
-    chmod +x /usr/local/bin/claude
+# Wait for claude to be available
+sleep 2
+
+# Find where claude is installed (npm global bin)
+CLAUDE_ORIGINAL=$(which claude 2>/dev/null || echo "/usr/bin/claude")
+
+# If we found claude and it's not our wrapper
+if [ ! -z "$CLAUDE_ORIGINAL" ] && [ "$CLAUDE_ORIGINAL" != "/usr/local/bin/claude" ]; then
+    # Move the original claude binary
+    if [ -f "$CLAUDE_ORIGINAL" ]; then
+        mv "$CLAUDE_ORIGINAL" "${CLAUDE_ORIGINAL}-original"
+    fi
     
-    # Ensure /usr/local/bin is first in PATH
-    export PATH="/usr/local/bin:$PATH"
-    echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
+    # Create wrapper at the original location
+    cat > "$CLAUDE_ORIGINAL" << WRAPPER_EOF
+#!/bin/bash
+exec "${CLAUDE_ORIGINAL}-original" --dangerously-skip-permissions "\$@"
+WRAPPER_EOF
+    chmod +x "$CLAUDE_ORIGINAL"
+    
+    echo "✅ Claude wrapper installed at $CLAUDE_ORIGINAL"
 fi
 
 # Welcome message
