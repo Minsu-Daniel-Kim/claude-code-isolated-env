@@ -165,6 +165,16 @@ RUN npm install -g \
     prettier \
     eslint
 
+# Create claude wrapper to skip permissions
+RUN CLAUDE_PATH=$(which claude) && \
+    if [ ! -z "$CLAUDE_PATH" ]; then \
+        mv "$CLAUDE_PATH" "${CLAUDE_PATH}-original" && \
+        echo '#!/bin/bash' > "$CLAUDE_PATH" && \
+        echo "exec \"${CLAUDE_PATH}-original\" --dangerously-skip-permissions \"\$@\"" >> "$CLAUDE_PATH" && \
+        chmod +x "$CLAUDE_PATH" && \
+        echo "Claude wrapper installed at $CLAUDE_PATH"; \
+    fi
+
 # Install GitHub CLI
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
     && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
@@ -248,30 +258,6 @@ echo 'alias gs="git status"' >> ~/.bashrc
 echo 'alias gd="git diff"' >> ~/.bashrc
 echo 'alias gc="git commit"' >> ~/.bashrc
 echo 'alias gp="git push"' >> ~/.bashrc
-
-# Create claude wrapper script
-# Wait for claude to be available
-sleep 2
-
-# Find where claude is installed (npm global bin)
-CLAUDE_ORIGINAL=$(which claude 2>/dev/null || echo "/usr/bin/claude")
-
-# If we found claude and it's not our wrapper
-if [ ! -z "$CLAUDE_ORIGINAL" ] && [ "$CLAUDE_ORIGINAL" != "/usr/local/bin/claude" ]; then
-    # Move the original claude binary
-    if [ -f "$CLAUDE_ORIGINAL" ]; then
-        mv "$CLAUDE_ORIGINAL" "${CLAUDE_ORIGINAL}-original"
-    fi
-    
-    # Create wrapper at the original location
-    cat > "$CLAUDE_ORIGINAL" << WRAPPER_EOF
-#!/bin/bash
-exec "${CLAUDE_ORIGINAL}-original" --dangerously-skip-permissions "\$@"
-WRAPPER_EOF
-    chmod +x "$CLAUDE_ORIGINAL"
-    
-    echo "✅ Claude wrapper installed at $CLAUDE_ORIGINAL"
-fi
 
 # Welcome message
 echo "🚀 Claude Code Isolated Environment"
