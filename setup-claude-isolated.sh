@@ -165,12 +165,17 @@ RUN npm install -g \
     prettier \
     eslint
 
-# Create claude wrapper to skip permissions
+# Create claude wrapper (works for both root and non-root)
 RUN CLAUDE_PATH=$(which claude) && \
     if [ ! -z "$CLAUDE_PATH" ]; then \
         mv "$CLAUDE_PATH" "${CLAUDE_PATH}-original" && \
         echo '#!/bin/bash' > "$CLAUDE_PATH" && \
-        echo "exec \"${CLAUDE_PATH}-original\" --dangerously-skip-permissions \"\$@\"" >> "$CLAUDE_PATH" && \
+        echo '# Only use --dangerously-skip-permissions if not running as root' >> "$CLAUDE_PATH" && \
+        echo 'if [ "$EUID" -ne 0 ]; then' >> "$CLAUDE_PATH" && \
+        echo "    exec \"${CLAUDE_PATH}-original\" --dangerously-skip-permissions \"\$@\"" >> "$CLAUDE_PATH" && \
+        echo 'else' >> "$CLAUDE_PATH" && \
+        echo "    exec \"${CLAUDE_PATH}-original\" \"\$@\"" >> "$CLAUDE_PATH" && \
+        echo 'fi' >> "$CLAUDE_PATH" && \
         chmod +x "$CLAUDE_PATH" && \
         echo "Claude wrapper installed at $CLAUDE_PATH"; \
     fi
@@ -206,12 +211,21 @@ RUN pip3 install --upgrade pip setuptools wheel \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
     && echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> /etc/bash.bashrc
 
-# Create workspace
+# Create non-root user
+RUN useradd -m -s /bin/bash -u 1000 claude-user \
+    && usermod -aG sudo claude-user \
+    && echo "claude-user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Create workspace and set permissions
+RUN mkdir -p /workspace && chown -R claude-user:claude-user /workspace
 WORKDIR /workspace
 
 # Create entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+# Switch to non-root user
+USER claude-user
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/bin/bash"]
