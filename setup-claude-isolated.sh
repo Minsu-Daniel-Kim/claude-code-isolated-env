@@ -276,24 +276,29 @@ if [ -f /creds/username ]; then
 fi
 
 # Configure GitHub CLI authentication
-if command -v gh &> /dev/null && [ -f /creds/token ]; then
+if command -v gh &> /dev/null && [ -f /creds/token ] && [ -f /creds/username ]; then
     echo "🔄 Setting up GitHub CLI authentication..."
     
-    # First logout to clear any bad state
-    gh auth logout --hostname github.com 2>/dev/null || true
+    # Create gh config directory
+    mkdir -p ~/.config/gh
     
-    # Then login with token
-    if cat /creds/token | gh auth login --with-token --hostname github.com 2>/dev/null; then
-        echo "✅ GitHub CLI authenticated successfully"
-    else
-        echo "⚠️  GitHub CLI authentication failed - check your token"
-    fi
+    # Create hosts.yml directly with proper format
+    cat > ~/.config/gh/hosts.yml << EOF
+github.com:
+    oauth_token: $(cat /creds/token)
+    user: $(cat /creds/username)
+    git_protocol: https
+EOF
     
     # Verify authentication
     if gh auth status &>/dev/null 2>&1; then
-        echo "✅ GitHub authentication verified"
+        echo "✅ GitHub CLI authenticated successfully"
+        # Show the user and scopes
+        gh auth status | grep -E "(Logged in|Token scopes)" | head -2
     else
-        echo "❌ GitHub authentication verification failed"
+        echo "❌ GitHub authentication failed"
+        # Show error for debugging
+        gh auth status 2>&1 | head -5
     fi
 fi
 
