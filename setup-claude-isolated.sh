@@ -175,16 +175,17 @@ RUN CLAUDE_PATH=$(which claude) && \
         echo "Claude wrapper installed at $CLAUDE_PATH"; \
     fi
 
-# Install GitHub CLI
-RUN apt-get update && apt-get install -y software-properties-common \
-    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-    && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-    && apt-get update \
-    && apt-get install -y gh \
-    && which gh \
-    && gh --version \
-    && rm -rf /var/lib/apt/lists/*
+# Install GitHub CLI (using direct binary download for reliability)
+RUN GH_VERSION="2.40.1" && \
+    ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "amd64" ]; then ARCH="linux_amd64"; \
+    elif [ "$ARCH" = "arm64" ]; then ARCH="linux_arm64"; fi && \
+    curl -L -o gh.tar.gz "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_${ARCH}.tar.gz" && \
+    tar -xzf gh.tar.gz && \
+    mv gh_${GH_VERSION}_${ARCH}/bin/gh /usr/local/bin/ && \
+    chmod +x /usr/local/bin/gh && \
+    rm -rf gh.tar.gz gh_${GH_VERSION}_${ARCH} && \
+    gh --version
 
 # Install Docker CLI (for Docker-in-Docker capability)
 RUN curl -fsSL https://get.docker.com | sh
