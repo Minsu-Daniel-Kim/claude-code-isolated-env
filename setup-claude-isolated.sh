@@ -267,30 +267,33 @@ if [ -f /creds/username ]; then
         git config --global user.email "$(cat /creds/username)@users.noreply.github.com"
     fi
     
-    # Configure authentication
-    if [ -f /creds/auth-method ] && [ "$(cat /creds/auth-method)" = "gh-cli" ]; then
-        # Use gh CLI authentication if available on host
-        echo "🔐 GitHub CLI authentication detected"
-    elif [ -f /creds/token ]; then
+    # Configure git authentication
+    if [ -f /creds/token ]; then
         # Configure git credential helper
         git config --global credential.helper store
         echo "https://$(cat /creds/username):$(cat /creds/token)@github.com" > ~/.git-credentials
-        
-        # Configure GitHub CLI with token
-        echo "$(cat /creds/token)" | gh auth login --with-token 2>/dev/null || true
     fi
 fi
 
-# Check if gh is already authenticated (from mounted config)
-if command -v gh &> /dev/null; then
-    if gh auth status &>/dev/null 2>&1; then
-        echo "🔐 GitHub CLI already authenticated"
+# Configure GitHub CLI authentication
+if command -v gh &> /dev/null && [ -f /creds/token ]; then
+    echo "🔄 Setting up GitHub CLI authentication..."
+    
+    # First logout to clear any bad state
+    gh auth logout --hostname github.com 2>/dev/null || true
+    
+    # Then login with token
+    if cat /creds/token | gh auth login --with-token --hostname github.com 2>/dev/null; then
+        echo "✅ GitHub CLI authenticated successfully"
     else
-        # If gh exists but auth failed, try to authenticate with token
-        if [ -f /creds/token ]; then
-            echo "🔄 Refreshing GitHub authentication..."
-            cat /creds/token | gh auth login --with-token --hostname github.com 2>/dev/null || echo "⚠️  GitHub auth refresh failed"
-        fi
+        echo "⚠️  GitHub CLI authentication failed - check your token"
+    fi
+    
+    # Verify authentication
+    if gh auth status &>/dev/null 2>&1; then
+        echo "✅ GitHub authentication verified"
+    else
+        echo "❌ GitHub authentication verification failed"
     fi
 fi
 
@@ -358,11 +361,9 @@ if [ -f ~/.claude-docker/username ]; then
     CRED_MOUNT="-v $HOME/.claude-docker:/creds:ro"
 fi
 
-# Check if gh CLI config exists
-if [ -d ~/.config/gh ]; then
-    echo -e "${GREEN}✓ GitHub CLI config detected${NC}"
-    GH_CONFIG_MOUNT="-v $HOME/.config/gh:/home/claude-user/.config/gh:ro"
-fi
+# Don't mount gh config - we'll use token auth instead
+# This prevents conflicts with invalid host configs
+GH_CONFIG_MOUNT=""
 
 # Detect if we need special permissions
 DOCKER_SOCK=""
