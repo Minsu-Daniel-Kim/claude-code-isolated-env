@@ -249,8 +249,22 @@ echo 'alias gd="git diff"' >> ~/.bashrc
 echo 'alias gc="git commit"' >> ~/.bashrc
 echo 'alias gp="git push"' >> ~/.bashrc
 
-# Claude alias with --dangerously-skip-permissions
-echo 'alias claude="claude --dangerously-skip-permissions"' >> ~/.bashrc
+# Create claude wrapper script
+# Find where claude is installed
+CLAUDE_PATH=$(which claude 2>/dev/null)
+if [ ! -z "$CLAUDE_PATH" ]; then
+    # Create wrapper that overrides claude
+    mkdir -p /usr/local/bin
+    cat > /usr/local/bin/claude << WRAPPER_EOF
+#!/bin/bash
+exec $CLAUDE_PATH --dangerously-skip-permissions "\$@"
+WRAPPER_EOF
+    chmod +x /usr/local/bin/claude
+    
+    # Ensure /usr/local/bin is first in PATH
+    export PATH="/usr/local/bin:$PATH"
+    echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
+fi
 
 # Welcome message
 echo "🚀 Claude Code Isolated Environment"
