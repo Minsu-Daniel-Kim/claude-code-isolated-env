@@ -181,6 +181,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
     && apt-get update \
     && apt-get install -y gh \
+    && gh --version \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Docker CLI (for Docker-in-Docker capability)
@@ -266,6 +267,13 @@ if [ -f /creds/username ]; then
     echo "👤 GitHub: $(cat /creds/username)"
 fi
 echo "📂 Workspace: /workspace"
+
+# Debug: Check if gh is available
+if ! command -v gh &> /dev/null; then
+    echo "⚠️  Warning: gh CLI not found in PATH"
+else
+    echo "✅ GitHub CLI: $(gh --version | head -1)"
+fi
 echo ""
 
 exec "$@"
