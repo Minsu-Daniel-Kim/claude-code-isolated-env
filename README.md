@@ -121,6 +121,25 @@ source ~/.bashrc
 claude-dev-update
 ```
 
+### Rebuild After Setup Changes
+If you modify the setup script or need to rebuild the environment:
+```bash
+# Exit container if you're in one
+exit
+
+# Re-run setup to regenerate Dockerfile
+cd /path/to/claude-code-isolated-env
+bash setup-claude-isolated.sh
+# Press Enter/Y when asked about credentials
+
+# Rebuild Docker image
+cd ~/.claude-docker
+docker build --no-cache -t claude-isolated .
+
+# Run claude-dev
+claude-dev
+```
+
 ## Notes
 
 - Your project files are mounted at `/workspace` inside the container
