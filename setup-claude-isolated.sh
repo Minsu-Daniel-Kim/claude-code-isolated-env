@@ -282,8 +282,16 @@ if [ -f /creds/username ]; then
 fi
 
 # Check if gh is already authenticated (from mounted config)
-if command -v gh &> /dev/null && gh auth status &>/dev/null 2>&1; then
-    echo "🔐 GitHub CLI already authenticated"
+if command -v gh &> /dev/null; then
+    if gh auth status &>/dev/null 2>&1; then
+        echo "🔐 GitHub CLI already authenticated"
+    else
+        # If gh exists but auth failed, try to authenticate with token
+        if [ -f /creds/token ]; then
+            echo "🔄 Refreshing GitHub authentication..."
+            cat /creds/token | gh auth login --with-token --hostname github.com 2>/dev/null || echo "⚠️  GitHub auth refresh failed"
+        fi
+    fi
 fi
 
 # Set up useful aliases
