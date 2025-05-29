@@ -353,7 +353,7 @@ fi
 # Check if gh CLI config exists
 if [ -d ~/.config/gh ]; then
     echo -e "${GREEN}✓ GitHub CLI config detected${NC}"
-    GH_CONFIG_MOUNT="-v $HOME/.config/gh:/root/.config/gh:ro"
+    GH_CONFIG_MOUNT="-v $HOME/.config/gh:/home/claude-user/.config/gh:ro"
 fi
 
 # Detect if we need special permissions
