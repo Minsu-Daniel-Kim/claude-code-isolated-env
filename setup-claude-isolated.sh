@@ -283,10 +283,12 @@ if command -v gh &> /dev/null && [ -f /creds/token ] && [ -f /creds/username ]; 
     mkdir -p ~/.config/gh
     
     # Create hosts.yml directly with proper format
-    cat > ~/.config/gh/hosts.yml << 'GHEOF'
+    TOKEN=$(cat /creds/token)
+    USERNAME=$(cat /creds/username)
+    cat > ~/.config/gh/hosts.yml << GHEOF
 github.com:
-    oauth_token: $(cat /creds/token)
-    user: $(cat /creds/username)
+    oauth_token: $TOKEN
+    user: $USERNAME
     git_protocol: https
 GHEOF
     
