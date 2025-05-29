@@ -246,6 +246,9 @@ echo 'alias gd="git diff"' >> ~/.bashrc
 echo 'alias gc="git commit"' >> ~/.bashrc
 echo 'alias gp="git push"' >> ~/.bashrc
 
+# Claude alias with --dangerously-skip-permissions
+echo 'alias claude="claude --dangerously-skip-permissions"' >> ~/.bashrc
+
 # Welcome message
 echo "🚀 Claude Code Isolated Environment"
 echo "📦 Available: claude, node, python3, git, gh, docker, uv"
