@@ -192,8 +192,15 @@ RUN GH_VERSION="2.40.1" && \
     rm -rf gh.tar.gz gh_${GH_VERSION}_${ARCH} && \
     gh --version
 
-# Install Docker CLI (for Docker-in-Docker capability)
-RUN curl -fsSL https://get.docker.com | sh
+# Install Docker CLI only (for Docker-in-Docker capability)
+RUN DOCKER_VERSION="24.0.7" && \
+    ARCH=$(dpkg --print-architecture) && \
+    curl -fsSL "https://download.docker.com/linux/static/stable/${ARCH}/docker-${DOCKER_VERSION}.tgz" -o docker.tgz && \
+    tar -xzf docker.tgz && \
+    mv docker/docker /usr/local/bin/ && \
+    chmod +x /usr/local/bin/docker && \
+    rm -rf docker docker.tgz && \
+    docker --version || echo "Docker CLI installed"
 
 # Set up Python tools
 RUN pip3 install --upgrade pip setuptools wheel \
