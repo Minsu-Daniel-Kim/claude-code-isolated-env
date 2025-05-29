@@ -165,15 +165,13 @@ RUN npm install -g \
     prettier \
     eslint
 
-# Install GitHub CLI (if credentials will be provided)
-RUN if [ -f /tmp/install-gh ]; then \
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+# Install GitHub CLI
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
     && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
     && apt-get update \
     && apt-get install -y gh \
-    && rm -rf /var/lib/apt/lists/*; \
-    fi
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Docker CLI (for Docker-in-Docker capability)
 RUN curl -fsSL https://get.docker.com | sh
@@ -239,6 +237,11 @@ if [ -f /creds/username ]; then
     fi
 fi
 
+# Check if gh is already authenticated (from mounted config)
+if command -v gh &> /dev/null && gh auth status &>/dev/null 2>&1; then
+    echo "🔐 GitHub CLI already authenticated"
+fi
+
 # Set up useful aliases
 echo 'alias ll="ls -la"' >> ~/.bashrc
 echo 'alias gs="git status"' >> ~/.bashrc
@@ -293,9 +296,16 @@ echo -e "${BLUE}🛠️  Tools: claude, node, python, git, docker${NC}"
 
 # Check if credentials exist
 CRED_MOUNT=""
+GH_CONFIG_MOUNT=""
 if [ -f ~/.claude-docker/username ]; then
     echo -e "${GREEN}✓ GitHub integration enabled${NC}"
     CRED_MOUNT="-v $HOME/.claude-docker:/creds:ro"
+fi
+
+# Check if gh CLI config exists
+if [ -d ~/.config/gh ]; then
+    echo -e "${GREEN}✓ GitHub CLI config detected${NC}"
+    GH_CONFIG_MOUNT="-v $HOME/.config/gh:/root/.config/gh:ro"
 fi
 
 # Detect if we need special permissions
@@ -311,6 +321,7 @@ echo ""
 docker run --rm -it \
   -v "$PROJECT_DIR":/workspace \
   $CRED_MOUNT \
+  $GH_CONFIG_MOUNT \
   $DOCKER_SOCK \
   -e GIT_EMAIL="${GIT_EMAIL:-}" \
   --name claude-dev-$$ \
