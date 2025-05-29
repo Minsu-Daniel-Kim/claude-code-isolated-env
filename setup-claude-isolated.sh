@@ -229,10 +229,19 @@ WORKDIR /workspace
 
 # Create entrypoint script
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint.sh && \
+    chown claude-user:claude-user /entrypoint.sh
+
+# Set up home directory for claude-user
+RUN mkdir -p /home/claude-user && \
+    chown -R claude-user:claude-user /home/claude-user
 
 # Switch to non-root user
 USER claude-user
+
+# Set proper environment
+ENV HOME=/home/claude-user
+ENV USER=claude-user
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/bin/bash"]
