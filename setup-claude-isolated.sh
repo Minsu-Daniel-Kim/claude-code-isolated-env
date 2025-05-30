@@ -438,6 +438,57 @@ echo "✅ Update complete!"
 EOF
 chmod +x ~/bin/claude-dev-update
 
+# Create persistent container script
+cat > ~/bin/claude-persist << 'EOF'
+#!/bin/bash
+
+# Colors
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+CONTAINER_NAME="claude-persistent"
+
+# Check if container exists
+if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+    # Check if it's running
+    if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+        echo -e "${GREEN}✓ Attaching to existing container${NC}"
+        docker exec -it $CONTAINER_NAME bash
+    else
+        echo -e "${YELLOW}⚡ Starting stopped container${NC}"
+        docker start $CONTAINER_NAME
+        docker exec -it $CONTAINER_NAME bash
+    fi
+else
+    echo -e "${BLUE}🚀 Creating new persistent container${NC}"
+    
+    # Get mount options
+    CRED_MOUNT=""
+    if [ -f ~/.claude-docker/username ]; then
+        CRED_MOUNT="-v $HOME/.claude-docker:/creds:ro"
+    fi
+    
+    DOCKER_SOCK=""
+    if [ -S /var/run/docker.sock ]; then
+        DOCKER_SOCK="-v /var/run/docker.sock:/var/run/docker.sock"
+    fi
+    
+    # Create persistent container
+    docker run -d -it \
+      -v "$HOME/Desktop:/workspace" \
+      $CRED_MOUNT \
+      $DOCKER_SOCK \
+      --name $CONTAINER_NAME \
+      claude-isolated
+    
+    # Attach to it
+    docker exec -it $CONTAINER_NAME bash
+fi
+EOF
+chmod +x ~/bin/claude-persist
+
 # Update PATH
 if [[ ":$PATH:" != *":$HOME/bin:"* ]]; then
     echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
