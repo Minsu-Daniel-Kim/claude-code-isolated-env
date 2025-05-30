@@ -141,7 +141,7 @@ RUN apt-get update && apt-get install -y \
     # Node.js (via NodeSource)
     ca-certificates gnupg \
     # Utilities
-    jq ripgrep tree htop tmux \
+    jq ripgrep tree htop tmux expect \
     # Network tools
     net-tools iputils-ping dnsutils \
     # Archive tools
@@ -311,8 +311,34 @@ echo 'alias gd="git diff"' >> ~/.bashrc
 echo 'alias gc="git commit"' >> ~/.bashrc
 echo 'alias gp="git push"' >> ~/.bashrc
 
-# Set Claude to remember bypass acceptance
-echo 'export CLAUDE_CODE_BYPASS_PERMISSIONS_PROMPT=true' >> ~/.bashrc
+# Create a claude wrapper that auto-accepts bypass mode
+cat >> ~/.bashrc << 'BASHEOF'
+
+# Claude wrapper function that auto-accepts bypass
+claude() {
+    # Check if we're in bypass mode (non-root user in container)
+    if [ "$EUID" -ne 0 ]; then
+        # Use expect if available, otherwise use echo
+        if command -v expect &> /dev/null; then
+            expect -c "
+                spawn claude $*
+                expect \"Enter to confirm\"
+                send \"2\r\"
+                interact
+            "
+        else
+            # Fallback: use printf to send "2" and Enter
+            printf "2\n" | command claude "$@"
+        fi
+    else
+        # If root, just run claude normally
+        command claude "$@"
+    fi
+}
+
+# Export the function
+export -f claude
+BASHEOF
 
 # Welcome message
 echo "🚀 Claude Code Isolated Environment"
