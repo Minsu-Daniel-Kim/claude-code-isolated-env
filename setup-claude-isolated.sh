@@ -311,6 +311,9 @@ echo 'alias gd="git diff"' >> ~/.bashrc
 echo 'alias gc="git commit"' >> ~/.bashrc
 echo 'alias gp="git push"' >> ~/.bashrc
 
+# Set Claude to remember bypass acceptance
+echo 'export CLAUDE_CODE_BYPASS_PERMISSIONS_PROMPT=true' >> ~/.bashrc
+
 # Welcome message
 echo "🚀 Claude Code Isolated Environment"
 echo "📦 Available: claude, node, python3, git, gh, docker, uv"
